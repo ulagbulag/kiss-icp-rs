@@ -1,0 +1,74 @@
+###########################
+# Workspace Configuration #
+###########################
+
+[workspace]
+members = [".", "core", "ops", "ops/core", "ops/eigen", "ops/sophus", "pyo3"]
+resolver = "2"
+
+[workspace.package]
+authors = ["Ho Kim <ho.kim@ulagbulag.io>"]
+description = "Unofficial Pure Rust Implementation of kiss-icp"
+documentation = "https://docs.rs/kiss-icp"
+edition = "2021"
+include = ["src/**/*.rs", "Cargo.toml"]
+keywords = ["icp", "kiss-icp", "slam"]
+license = "MIT"
+readme = "./README.md"
+rust-version = "1.62"
+homepage = "https://github.com/ulagbulag/kiss-icp-rs"
+repository = "https://github.com/ulagbulag/kiss-icp-rs"
+version = "0.1.0"
+
+[workspace.dependencies]
+kiss-icp = { path = "core", version = "0.1.0" }
+kiss-icp-core = { path = "core", version = "0.1.0" }
+kiss-icp-ops = { path = "ops", version = "0.1.0" }
+kiss-icp-ops-core = { path = "ops/core", version = "0.1.0" }
+kiss-icp-ops-eigen = { path = "ops/eigen", version = "0.1.0" }
+kiss-icp-ops-sophus = { path = "ops/sophus", version = "0.1.0" }
+kiss-icp-pyo3 = { path = "ops/pyo3", version = "0.1.0" }
+
+anyhow = { version = "1.0", features = ["backtrace"] }
+hashbrown = { version = "0.14", features = ["ahash", "inline-more"] }
+hwlocality = { version = "1.0.0-alpha.1" }
+itertools = { version = "0.12" }
+nalgebra = { version = "0.32" }
+numpy = { version = "0.20", features = ["nalgebra"] }
+ordered-float = { version = "4.2" }
+pyo3 = { version = "0.20", features = ["extension-module"] }
+rand = { version = "0.8" }
+rayon = { version = "1.8" }
+
+########################
+# Maximize performance #
+########################
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+overflow-checks = false # Disable integer overflow checks.
+panic = "abort"
+
+#########################
+# Package Configuration #
+#########################
+
+[package]
+name = "kiss-icp"
+
+authors = { workspace = true }
+description = { workspace = true }
+documentation = { workspace = true }
+edition = { workspace = true }
+include = { workspace = true }
+keywords = { workspace = true }
+license = { workspace = true }
+readme = { workspace = true }
+rust-version = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+version = { workspace = true }
+
+[dependencies]
+kiss-icp-core = { workspace = true }

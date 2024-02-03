@@ -1,0 +1,6 @@
+########################
+# Maximize performance #
+########################
+
+[build]
+rustflags = ["-C", "target-cpu=native", "--emit=llvm-ir"]
