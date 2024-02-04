@@ -17,25 +17,40 @@ pub mod runtime {
 
     #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
     pub enum SystemType {
+        /// Use all threads without the main thread
         #[default]
-        Executable,
-        Library,
+        Generic,
+        /// Use all threads even with the main thread
+        Python,
     }
 
     pub fn init(system_type: SystemType) -> Result<()> {
         if !IS_INITED.swap(true, Ordering::SeqCst) {
-            let mut builder = ThreadPoolBuilder::new().num_threads(prepare_threads()?);
-            if matches!(system_type, SystemType::Library) {
+            let threads = prepare_threads()?;
+
+            let mut builder = ThreadPoolBuilder::new().num_threads(threads.len());
+            if matches!(system_type, SystemType::Python) {
                 builder = builder.use_current_thread();
             }
             builder.build_global()?;
+
+            bind_threads(threads)?;
         }
         Ok(())
     }
 
     #[cfg(not(feature = "numa"))]
-    #[inline]
-    fn prepare_threads() -> Result<usize> {
+    const fn get_topology() -> Result<()> {
+        Ok(())
+    }
+
+    #[cfg(feature = "numa")]
+    fn get_topology() -> Result<::hwlocality::Topology> {
+        ::hwlocality::Topology::new().map_err(Into::into)
+    }
+
+    #[cfg(not(feature = "numa"))]
+    fn prepare_threads() -> Result<impl Iterator<Item = usize>> {
         use std::thread;
 
         // heuristic values (Feb 03, 2024)
@@ -48,23 +63,14 @@ pub mod runtime {
     }
 
     #[cfg(feature = "numa")]
-    #[inline]
-    fn prepare_threads() -> Result<usize> {
-        // select a NUMA node
-        let topology = ::hwlocality::Topology::new()?;
-        select_numa_node(&topology)
-    }
-
-    #[cfg(feature = "numa")]
-    #[inline]
-    fn select_numa_node(topology: &::hwlocality::Topology) -> Result<usize> {
-        use hwlocality::cpu::{binding::CpuBindingFlags, cpuset::CpuSet};
+    fn prepare_threads() -> Result<Vec<usize>> {
         use rand::{
             distributions::{Distribution, Uniform},
             thread_rng,
         };
 
         // get NUMA/CPUs info
+        let topology = get_topology()?;
         let all_numa_nodes = topology.nodeset();
         let all_cpus = topology.cpuset();
 
@@ -81,21 +87,31 @@ pub mod runtime {
         let numa_node = Uniform::new(0usize, num_numa_nodes).sample(&mut thread_rng());
 
         // get all the CPUs in the NUMA node
-        let cpus = {
-            let cpu_begin = numa_node * num_threads_per_cpu;
-            let cpu_end = cpu_begin + num_threads_per_cpu;
+        let cpu_begin = numa_node * num_threads_per_cpu;
+        let cpu_end = cpu_begin + num_threads_per_cpu;
+        Ok((cpu_begin..cpu_end).collect())
+    }
 
-            let mut res = CpuSet::new();
-            for idx in cpu_begin..cpu_end {
+    #[cfg(not(feature = "numa"))]
+    const fn bind_threads() -> Result<()> {
+        Ok(())
+    }
+
+    #[cfg(feature = "numa")]
+    fn bind_threads(threads: Vec<usize>) -> Result<()> {
+        use hwlocality::cpu::{binding::CpuBindingFlags, cpuset::CpuSet};
+        use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+        threads.into_par_iter().try_for_each(|idx| {
+            // bind the given thread into the NUMA node
+            let topology = get_topology()?;
+            let cpus = {
+                let mut res = CpuSet::new();
                 res.set(idx);
-            }
-            res
-        };
-
-        // bind the process into the NUMA node
-        topology.bind_cpu(&cpus, CpuBindingFlags::PROCESS)?;
-
-        // return the count of available threads
-        Ok(num_threads_per_cpu)
+                res
+            };
+            topology.bind_cpu(&cpus, CpuBindingFlags::THREAD)?;
+            Ok(())
+        })
     }
 }

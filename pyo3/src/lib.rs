@@ -212,7 +212,7 @@ fn _absolute_trajectory_error(
 #[pymodule]
 fn kiss_icp_pybind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // optimize performance
-    runtime::init(runtime::SystemType::Library).map_err(|error| {
+    runtime::init(runtime::SystemType::Python).map_err(|error| {
         PyException::new_err(format!(
             "failed to init {name}: {error}",
             name = env!("CARGO_CRATE_NAME"),

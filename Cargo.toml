@@ -36,7 +36,7 @@ itertools = { version = "0.12" }
 nalgebra = { version = "0.32" }
 numpy = { version = "0.20", features = ["nalgebra"] }
 ordered-float = { version = "4.2" }
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.20" }
 rand = { version = "0.8" }
 rayon = { version = "1.8" }
 

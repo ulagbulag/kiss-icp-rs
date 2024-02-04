@@ -36,6 +36,6 @@ nightly = ["kiss-icp-core/nightly", "pyo3/nightly"]
 [dependencies]
 kiss-icp-core = { workspace = true }
 
-numpy = { workspace = true, features = ["nalgebra"] }
+numpy = { workspace = true }
 pyo3 = { workspace = true, features = ["extension-module"] }
 rayon = { workspace = true }
