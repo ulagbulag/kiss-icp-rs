@@ -41,8 +41,8 @@ openblas = ["kiss-icp-core/openblas"]
 
 [dependencies]
 kiss-icp-core = { workspace = true }
-kiss-icp-runtime = { workspace = true }
 
 numpy = { workspace = true }
 pyo3 = { workspace = true, features = ["extension-module"] }
 rayon = { workspace = true }
+sas = { workspace = true }

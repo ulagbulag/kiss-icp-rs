@@ -1,7 +1,5 @@
 #![allow(non_snake_case)]
 
-extern crate kiss_icp_runtime as runtime;
-
 use kiss_icp_core::{
     deskew, metrics, preprocessing,
     threshold::AdaptiveThreshold,
@@ -17,6 +15,7 @@ use pyo3::{
     wrap_pyfunction, PyObject, PyResult, Python,
 };
 use rayon::iter::ParallelIterator;
+use sas::{Sas, SystemType};
 
 type PyVoxelPoint<'py> = ::numpy::PyReadonlyArray1<'py, f64>;
 type PyListVoxelPoint<'py> = ::numpy::PyReadonlyArray2<'py, f64>;
@@ -232,12 +231,17 @@ fn _absolute_trajectory_error(
 #[pymodule]
 fn kiss_icp_pybind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // optimize performance
-    ::runtime::init(runtime::SystemType::Python).map_err(|error| {
-        PyException::new_err(format!(
-            "failed to init {name}: {error}",
-            name = env!("CARGO_CRATE_NAME"),
-        ))
-    })?;
+    {
+        let args = Sas {
+            system_type: SystemType::Python,
+        };
+        args.init().map_err(|error| {
+            PyException::new_err(format!(
+                "failed to init {name}: {error}",
+                name = env!("CARGO_CRATE_NAME"),
+            ))
+        })?;
+    }
 
     m.add_function(wrap_pyfunction!(_Vector3dVector, m)?)?;
 
