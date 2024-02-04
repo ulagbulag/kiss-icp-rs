@@ -14,13 +14,13 @@ struct Errors {
     speed: f64,
 }
 
-fn trajectory_distances(poses: &[impl Copy + IntoIsometry3]) -> Vec<f64> {
+fn trajectory_distances(poses: &[impl IntoIsometry3]) -> Vec<f64> {
     let mut dist = Vec::with_capacity(poses.len());
     dist.push(0.0);
 
     poses
         .iter()
-        .map(IntoIsometry3::into_isometry3)
+        .map(IntoIsometry3::to_isometry3)
         .tuple_windows()
         .map(|(p1, p2)| (p1.translation.vector - p2.translation.vector).norm())
         .enumerate()
@@ -49,8 +49,8 @@ fn translation_error(pose_error: Isometry3<f64>) -> f64 {
 }
 
 fn calc_sequence_errors(
-    poses_gt: &[impl Copy + IntoIsometry3],
-    poses_result: &[impl Copy + IntoIsometry3],
+    poses_gt: &[impl IntoIsometry3],
+    poses_result: &[impl IntoIsometry3],
 ) -> Vec<Errors> {
     // parameters
     // TODO: All this not so beatifull C++ functions are taken from kitti-dev-kit
@@ -75,10 +75,10 @@ fn calc_sequence_errors(
                     let last_frame = last_frame_from_segment_length(&dist, first_frame, len)?;
 
                     // compute rotational and translational errors
-                    let pose_delta_gt = poses_gt[first_frame].into_isometry3().inverse()
-                        * poses_gt[last_frame].into_isometry3();
-                    let pose_delta_result = poses_result[first_frame].into_isometry3().inverse()
-                        * poses_result[last_frame].into_isometry3();
+                    let pose_delta_gt = poses_gt[first_frame].to_isometry3().inverse()
+                        * poses_gt[last_frame].to_isometry3();
+                    let pose_delta_result = poses_result[first_frame].to_isometry3().inverse()
+                        * poses_result[last_frame].to_isometry3();
                     let pose_error = pose_delta_result.inverse() * pose_delta_gt;
                     let r_err = rotation_error(pose_error);
                     let t_err = translation_error(pose_error);
@@ -102,8 +102,8 @@ fn calc_sequence_errors(
 }
 
 pub fn seq_error(
-    poses_gt: &[impl Copy + IntoIsometry3],
-    poses_result: &[impl Copy + IntoIsometry3],
+    poses_gt: &[impl IntoIsometry3],
+    poses_result: &[impl IntoIsometry3],
 ) -> (f64, f64) {
     let err = calc_sequence_errors(poses_gt, poses_result);
     if err.is_empty() {
@@ -124,8 +124,8 @@ pub fn seq_error(
 }
 
 pub fn absolute_trajectory_error(
-    poses_gt: &[impl Copy + IntoIsometry3],
-    poses_result: &[impl Copy + IntoIsometry3],
+    poses_gt: &[impl IntoIsometry3],
+    poses_result: &[impl IntoIsometry3],
 ) -> (f64, f64) {
     let num_poses = poses_gt.len().min(poses_result.len());
     let mut source = Matrix3xX::<f64>::zeros(num_poses);
@@ -135,10 +135,10 @@ pub fn absolute_trajectory_error(
     for i in 0..num_poses {
         source
             .column_mut(i)
-            .copy_from(&poses_result[i].into_isometry3().translation.vector);
+            .copy_from(&poses_result[i].to_isometry3().translation.vector);
         target
             .column_mut(i)
-            .copy_from(&poses_gt[i].into_isometry3().translation.vector);
+            .copy_from(&poses_gt[i].to_isometry3().translation.vector);
     }
     let t_align_trajectories = umeyama(&source, &target, false);
 
@@ -146,8 +146,8 @@ pub fn absolute_trajectory_error(
     let (ate_rot, ate_trans) = (0..num_poses)
         .map(|j| {
             // Apply alignement matrix
-            let t_estimate = t_align_trajectories * poses_result[j].into_matrix4();
-            let t_ground_truth = poses_gt[j].into_matrix4();
+            let t_estimate = t_align_trajectories * poses_result[j].to_matrix4();
+            let t_ground_truth = poses_gt[j].to_matrix4();
 
             // Compute error in translation and rotation matrix (ungly)
             let delta_r = t_ground_truth.fixed_view::<3, 3>(0, 0)

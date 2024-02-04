@@ -3,11 +3,11 @@
 use kiss_icp_core::{
     deskew, metrics, preprocessing, runtime,
     threshold::AdaptiveThreshold,
-    types::{IntoIsometry3, IntoVoxelPoint, PyIsometry3, PyVoxelPoint},
+    types::{IntoIsometry3, IsometryArray3},
     voxel_hash_map::{VoxelHashMap, VoxelHashMapArgs},
 };
 use numpy::{
-    nalgebra::{Dyn, MatrixXx3, U3},
+    nalgebra::{Dyn, MatrixXx3, U1, U3, U4},
     PyArray2, ToPyArray,
 };
 use pyo3::{
@@ -16,7 +16,10 @@ use pyo3::{
 };
 use rayon::iter::ParallelIterator;
 
+type PyVoxelPoint<'py> = ::numpy::PyReadonlyArray1<'py, f64>;
 type PyListVoxelPoint<'py> = ::numpy::PyReadonlyArray2<'py, f64>;
+
+type PyIsometryMatrix3<'py> = ::numpy::PyReadonlyArray2<'py, f64>;
 
 #[pyfunction]
 fn _Vector3dVector(vec: PyObject) -> PyObject {
@@ -47,19 +50,21 @@ impl _VoxelHashMap {
         self.0.is_empty()
     }
 
-    fn _update(&mut self, points: PyListVoxelPoint, pose: PyIsometry3) {
+    fn _update(&mut self, points: PyListVoxelPoint, pose: PyIsometryMatrix3) {
         self._update_with_pose(points, pose)
     }
 
     #[inline]
     fn _update_with_origin(&mut self, points: PyListVoxelPoint, origin: PyVoxelPoint) {
         let points = points.try_as_matrix::<Dyn, U3, Dyn, Dyn>().unwrap();
-        self.0.update_with_origin(&points, origin)
+        let origin = origin.try_as_matrix::<U3, U1, Dyn, Dyn>().unwrap();
+        self.0.update_with_origin(&points, &origin)
     }
 
     #[inline]
-    fn _update_with_pose(&mut self, points: PyListVoxelPoint, pose: PyIsometry3) {
+    fn _update_with_pose(&mut self, points: PyListVoxelPoint, pose: PyIsometryMatrix3) {
         let points = points.try_as_matrix::<Dyn, U3, Dyn, Dyn>().unwrap();
+        let pose = pose.try_as_matrix::<U4, U4, Dyn, Dyn>().unwrap();
         self.0.update_with_pose(&points, pose)
     }
 
@@ -69,7 +74,8 @@ impl _VoxelHashMap {
     }
 
     fn _remove_far_away_points(&mut self, origin: PyVoxelPoint) {
-        self.0.remove_points_far_from_location(origin)
+        let origin = origin.try_as_matrix::<U3, U1, Dyn, Dyn>().unwrap();
+        self.0.remove_points_far_from_location(&origin)
     }
 
     fn _point_cloud<'py>(&self, py: Python<'py>) -> &'py PyArray2<f64> {
@@ -84,7 +90,7 @@ impl _VoxelHashMap {
     fn _get_correspondences<'py>(
         &self,
         py: Python<'py>,
-        points: PyListVoxelPoint,
+        points: PyListVoxelPoint<'py>,
         max_correspondance_distance: f64,
     ) -> (&'py PyArray2<f64>, &'py PyArray2<f64>) {
         let points = points.try_as_matrix::<Dyn, U3, Dyn, Dyn>().unwrap();
@@ -102,21 +108,24 @@ impl _VoxelHashMap {
 
 /// Point Cloud registration
 #[pyfunction]
-fn _register_point_cloud(
-    points: PyListVoxelPoint,
+fn _register_point_cloud<'py>(
+    py: Python<'py>,
+    points: PyListVoxelPoint<'py>,
     voxel_map: &_VoxelHashMap,
-    initial_guess: PyIsometry3,
+    initial_guess: PyIsometryMatrix3<'py>,
     max_correspondance_distance: f64,
     kernel: f64,
-) -> PyIsometry3 {
+) -> &'py PyArray2<f64> {
     let points = points
         .try_as_matrix::<Dyn, U3, Dyn, Dyn>()
         .unwrap()
         .clone_owned();
-    voxel_map
+    let initial_guess = initial_guess.try_as_matrix::<U4, U4, Dyn, Dyn>().unwrap();
+    let pose = voxel_map
         .0
         .register_frame(points, initial_guess, max_correspondance_distance, kernel)
-        .into_py_isometry3()
+        .into_matrix4();
+    pose.to_pyarray(py)
 }
 
 /// AdaptiveThreshold bindings
@@ -138,22 +147,28 @@ impl _AdaptiveThreshold {
         self.0.compute_threshold()
     }
 
-    fn _update_model_deviation(&mut self, model_deviation: PyIsometry3) {
+    fn _update_model_deviation(&mut self, model_deviation: PyIsometryMatrix3) {
+        let model_deviation = model_deviation.try_as_matrix::<U4, U4, Dyn, Dyn>().unwrap();
         self.0.update_model_deviation(model_deviation)
     }
 }
 
 /// DeSkewScan
 #[pyfunction]
-fn _deskew_scan(
-    frame: Vec<PyVoxelPoint>,
+fn _deskew_scan<'py>(
+    py: Python<'py>,
+    frame: PyListVoxelPoint<'py>,
     timestamps: Vec<f64>,
-    start_pose: PyIsometry3,
-    finish_pose: PyIsometry3,
-) -> Vec<PyVoxelPoint> {
-    deskew::scan(&frame, &timestamps, start_pose, finish_pose)
-        .map(IntoVoxelPoint::into_py_voxel_point)
-        .collect()
+    start_pose: PyIsometryMatrix3<'py>,
+    finish_pose: PyIsometryMatrix3<'py>,
+) -> &'py PyArray2<f64> {
+    let frame = frame.try_as_matrix::<Dyn, U3, Dyn, Dyn>().unwrap();
+    let start_pose = start_pose.try_as_matrix::<U4, U4, Dyn, Dyn>().unwrap();
+    let finish_pose = finish_pose.try_as_matrix::<U4, U4, Dyn, Dyn>().unwrap();
+    let scanned: Vec<_> = deskew::scan(&frame, &timestamps, start_pose, finish_pose)
+        .map(|point| point.transpose())
+        .collect();
+    MatrixXx3::from_rows(&scanned).to_pyarray(py)
 }
 
 // preprocessing modules
@@ -197,14 +212,17 @@ fn _correct_kitti_scan<'py>(py: Python<'py>, frame: PyListVoxelPoint<'py>) -> &'
 // Metrics
 
 #[pyfunction]
-fn _kitti_seq_error(gt_poses: Vec<PyIsometry3>, results_poses: Vec<PyIsometry3>) -> (f64, f64) {
+fn _kitti_seq_error(
+    gt_poses: Vec<IsometryArray3>,
+    results_poses: Vec<IsometryArray3>,
+) -> (f64, f64) {
     metrics::seq_error(&gt_poses, &results_poses)
 }
 
 #[pyfunction]
 fn _absolute_trajectory_error(
-    gt_poses: Vec<PyIsometry3>,
-    results_poses: Vec<PyIsometry3>,
+    gt_poses: Vec<IsometryArray3>,
+    results_poses: Vec<IsometryArray3>,
 ) -> (f64, f64) {
     metrics::absolute_trajectory_error(&gt_poses, &results_poses)
 }

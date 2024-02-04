@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use nalgebra::{
-    Const, Dyn, Isometry3, Matrix, Matrix3x6, Matrix6, RawStorage, RawStorageMut, Storage, Vector3,
-    Vector6, U3,
+    Dyn, Isometry3, Matrix, Matrix3x6, Matrix6, RawStorage, RawStorageMut, Storage, Vector3,
+    Vector6, U1, U3,
 };
 use ordered_float::OrderedFloat;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -11,7 +11,7 @@ use crate::{
         sophus::{Exp, Hat},
         transform::Transform,
     },
-    types::{IntoIsometry3, IntoVoxelPoint, VoxelPoint},
+    types::{IntoIsometry3, VoxelPoint},
 };
 
 #[derive(Clone, Debug)]
@@ -199,9 +199,10 @@ impl VoxelHashMap {
         final_guess
     }
 
-    pub fn remove_points_far_from_location(&mut self, location: impl IntoVoxelPoint) {
-        let location = location.into_voxel_point();
-
+    pub fn remove_points_far_from_location<S>(&mut self, location: &Matrix<f64, U3, U1, S>)
+    where
+        S: Storage<f64, U3, U1>,
+    {
         let pruned: Vec<_> = self
             .storage
             .iter()
@@ -218,12 +219,13 @@ impl VoxelHashMap {
     }
 
     #[inline]
-    pub fn update_with_origin<S>(
+    pub fn update_with_origin<Sp, So>(
         &mut self,
-        points: &Matrix<f64, Dyn, U3, S>,
-        origin: impl IntoVoxelPoint,
+        points: &Matrix<f64, Dyn, U3, Sp>,
+        origin: &Matrix<f64, U3, U1, So>,
     ) where
-        S: RawStorage<f64, Dyn, Const<3>>,
+        Sp: RawStorage<f64, Dyn, U3>,
+        So: Storage<f64, U3, U1>,
     {
         self.add_points(points);
         self.remove_points_far_from_location(origin);
@@ -247,7 +249,7 @@ impl VoxelHashMap {
             });
         }
         let origin = pose.translation.vector;
-        self.update_with_origin(&points_transformed, origin)
+        self.update_with_origin(&points_transformed, &origin)
     }
 }
 
