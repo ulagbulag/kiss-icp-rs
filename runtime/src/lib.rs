@@ -40,16 +40,17 @@ fn get_topology() -> Result<::hwlocality::Topology> {
 }
 
 #[cfg(not(feature = "numa"))]
-fn prepare_threads() -> Result<impl Iterator<Item = usize>> {
+fn prepare_threads() -> Result<Vec<usize>> {
     use std::thread;
 
     // heuristic values (Feb 03, 2024)
     const MAX_THREADS: usize = 32;
 
-    Ok(thread::available_parallelism()
+    let num_threads = thread::available_parallelism()
         .map(usize::from)
         .unwrap_or(1)
-        .min(MAX_THREADS))
+        .min(MAX_THREADS);
+    Ok((0..num_threads).collect())
 }
 
 #[cfg(feature = "numa")]
@@ -83,7 +84,8 @@ fn prepare_threads() -> Result<Vec<usize>> {
 }
 
 #[cfg(not(feature = "numa"))]
-const fn bind_threads() -> Result<()> {
+#[inline]
+fn bind_threads(_: Vec<usize>) -> Result<()> {
     Ok(())
 }
 
