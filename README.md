@@ -4,7 +4,7 @@ An unofficial pure Rust implementation of [KISS-ICP](https://github.com/PRBonn/k
 
 ## Features
 
-- Hardware Topology-aware Parallel Computing support (`numa` feature, enabled by default)
+- [Hardware Topology-aware Optimization](https://github.com/ulagbulag/sas.git) support (`sas` feature, enabled by default)
 - [KISS-ICP python](https://pypi.org/project/kiss-icp/) plugin Integration (Seamless **CMake** supported is planned)
 
 ## Install

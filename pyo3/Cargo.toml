@@ -29,7 +29,7 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["openblas"]
+default = ["openblas", "sas"]
 
 nightly = ["kiss-icp-core/nightly", "pyo3/nightly"]
 
@@ -45,4 +45,4 @@ kiss-icp-core = { workspace = true }
 numpy = { workspace = true }
 pyo3 = { workspace = true, features = ["extension-module"] }
 rayon = { workspace = true }
-sas = { workspace = true }
+sas = { workspace = true, optional = true }

@@ -11,11 +11,10 @@ use numpy::{
     PyArray2, ToPyArray,
 };
 use pyo3::{
-    exceptions::PyException, pyclass, pyfunction, pymethods, pymodule, types::PyModule,
-    wrap_pyfunction, PyObject, PyResult, Python,
+    pyclass, pyfunction, pymethods, pymodule, types::PyModule, wrap_pyfunction, PyObject, PyResult,
+    Python,
 };
 use rayon::iter::ParallelIterator;
-use sas::{Sas, SystemType};
 
 type PyVoxelPoint<'py> = ::numpy::PyReadonlyArray1<'py, f64>;
 type PyListVoxelPoint<'py> = ::numpy::PyReadonlyArray2<'py, f64>;
@@ -231,7 +230,11 @@ fn _absolute_trajectory_error(
 #[pymodule]
 fn kiss_icp_pybind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // optimize performance
+    #[cfg(feature = "sas")]
     {
+        use pyo3::exceptions::PyException;
+        use sas::{Sas, SystemType};
+
         let args = Sas {
             system_type: SystemType::Python,
         };
