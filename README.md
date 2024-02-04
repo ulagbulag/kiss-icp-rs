@@ -1,5 +1,7 @@
 # KISS-ICP
 
+![kiss-icp-rs Logo](assets/logo.webp)
+
 An unofficial pure Rust implementation of [KISS-ICP](https://github.com/PRBonn/kiss-icp.git), a LiDAR Odometry pipeline that just works on most of the cases without tunning any parameter.
 
 ## Features
