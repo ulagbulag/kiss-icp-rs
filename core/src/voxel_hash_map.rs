@@ -3,6 +3,7 @@ use nalgebra::{
     Dyn, Isometry3, Matrix, Matrix3x6, Matrix6, RawStorage, RawStorageMut, Storage, Vector3,
     Vector6, U1, U3,
 };
+use nalgebra_lapack::Cholesky;
 use ordered_float::OrderedFloat;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
@@ -177,8 +178,8 @@ impl VoxelHashMap {
 
             // Equation (11)
             let (j_tj, j_tr) = build_linear_system(corres, kernel);
-            let dx = match j_tj.cholesky() {
-                Some(decompositor) => decompositor.solve(&(-j_tr)),
+            let dx = match Cholesky::new(j_tj) {
+                Some(decompositor) => decompositor.solve(&(-j_tr)).unwrap(),
                 None => break,
             };
             let estimation = dx.exp();

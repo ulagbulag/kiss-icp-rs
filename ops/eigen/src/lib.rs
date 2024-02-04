@@ -1,7 +1,8 @@
 use std::ops::MulAssign;
 
 use kiss_icp_ops_core::matrix::MatrixVectorOps;
-use nalgebra::{Matrix3xX, Matrix4, Vector3, SVD};
+use nalgebra::{Matrix3xX, Matrix4, Vector3};
+use nalgebra_lapack::SVD;
 
 pub fn umeyama(src: &Matrix3xX<f64>, dst: &Matrix3xX<f64>, with_scaling: bool) -> Matrix4<f64> {
     let n = src.ncols(); // number of measurements
@@ -29,11 +30,9 @@ pub fn umeyama(src: &Matrix3xX<f64>, dst: &Matrix3xX<f64>, with_scaling: bool) -
 
     let SVD {
         u,
-        v_t,
+        vt: v_t,
         singular_values,
-    } = sigma.svd(true, true);
-    let u = u.unwrap();
-    let v_t = v_t.unwrap();
+    } = SVD::new(sigma).unwrap();
 
     // Initialize the resulting transformation with an identity matrix...
     let mut rt = Matrix4::identity();

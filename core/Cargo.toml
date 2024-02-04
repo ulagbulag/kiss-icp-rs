@@ -17,19 +17,22 @@ version = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["numa"]
+default = []
 
 nightly = ["hashbrown/nightly"]
-numa = ["hwlocality", "rand"]
+
+# For BLAS/LAPACK
+accelerate = ["kiss-icp-ops/accelerate", "nalgebra-lapack/accelerate"]
+intel-mkl = ["kiss-icp-ops/intel-mkl", "nalgebra-lapack/intel-mkl"]
+netlib = ["kiss-icp-ops/netlib", "nalgebra-lapack/netlib"]
+openblas = ["kiss-icp-ops/openblas", "nalgebra-lapack/openblas"]
 
 [dependencies]
 kiss-icp-ops = { workspace = true }
 
-anyhow = { workspace = true }
-hashbrown = { workspace = true, features = ["rayon"] }
-hwlocality = { workspace = true, optional = true }
+hashbrown = { workspace = true }
 itertools = { workspace = true }
 nalgebra = { workspace = true }
+nalgebra-lapack = { workspace = true }
 ordered-float = { workspace = true }
-rand = { workspace = true, optional = true }
 rayon = { workspace = true }

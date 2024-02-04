@@ -3,7 +3,16 @@
 ###########################
 
 [workspace]
-members = [".", "core", "ops", "ops/core", "ops/eigen", "ops/sophus", "pyo3"]
+members = [
+    ".",
+    "core",
+    "ops",
+    "ops/core",
+    "ops/eigen",
+    "ops/sophus",
+    "pyo3",
+    "runtime",
+]
 resolver = "2"
 
 [workspace.package]
@@ -28,12 +37,14 @@ kiss-icp-ops-core = { path = "ops/core", version = "0.1.0" }
 kiss-icp-ops-eigen = { path = "ops/eigen", version = "0.1.0" }
 kiss-icp-ops-sophus = { path = "ops/sophus", version = "0.1.0" }
 kiss-icp-pyo3 = { path = "ops/pyo3", version = "0.1.0" }
+kiss-icp-runtime = { path = "runtime", version = "0.1.0" }
 
 anyhow = { version = "1.0", features = ["backtrace"] }
-hashbrown = { version = "0.14", features = ["ahash", "inline-more"] }
+hashbrown = { version = "0.14", features = ["ahash", "inline-more", "rayon"] }
 hwlocality = { version = "1.0.0-alpha.1" }
 itertools = { version = "0.12" }
 nalgebra = { version = "0.32" }
+nalgebra-lapack = { version = "0.24", default-features = false }
 numpy = { version = "0.20", features = ["nalgebra"] }
 ordered-float = { version = "4.2" }
 pyo3 = { version = "0.20" }

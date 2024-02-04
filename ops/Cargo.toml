@@ -16,6 +16,15 @@ version = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+
+# For BLAS/LAPACK
+accelerate = ["kiss-icp-ops-eigen/accelerate"]
+intel-mkl = ["kiss-icp-ops-eigen/intel-mkl"]
+netlib = ["kiss-icp-ops-eigen/netlib"]
+openblas = ["kiss-icp-ops-eigen/openblas"]
+
 [dependencies]
 kiss-icp-ops-core = { workspace = true }
 kiss-icp-ops-eigen = { workspace = true }
