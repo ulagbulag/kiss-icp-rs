@@ -19,7 +19,7 @@ impl Exp<f64> for Vector6<f64> {
     }
 }
 
-trait ExpAndTheta<T> {
+pub trait ExpAndTheta<T> {
     fn exp_and_theta(&self) -> (UnitQuaternion<T>, T);
 }
 
@@ -83,7 +83,7 @@ impl Log<f64> for Isometry3<f64> {
     }
 }
 
-trait LogAndTheta<T> {
+pub trait LogAndTheta<T> {
     fn log_and_theta(&self) -> (Vector3<T>, T);
 }
 
