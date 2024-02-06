@@ -130,7 +130,7 @@ impl LogAndTheta<f64> for UnitQuaternion<f64> {
 }
 
 #[inline]
-fn left_jacobian(omega: Vector3<f64>, theta: f64) -> Matrix3<f64> {
+pub fn left_jacobian(omega: Vector3<f64>, theta: f64) -> Matrix3<f64> {
     let theta_sq = theta * theta;
     let omega = omega.hat();
 
@@ -144,7 +144,7 @@ fn left_jacobian(omega: Vector3<f64>, theta: f64) -> Matrix3<f64> {
 }
 
 #[inline]
-fn left_jacobian_inverse(omega: Vector3<f64>, theta: f64) -> Matrix3<f64> {
+pub fn left_jacobian_inverse(omega: Vector3<f64>, theta: f64) -> Matrix3<f64> {
     let theta_sq = theta * theta;
     let omega = omega.hat();
 
